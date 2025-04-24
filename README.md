@@ -6,7 +6,7 @@ changes are merged into the `main` branch.
 
 ## 📆 Features
 
-- 📁 One subfolder per image (`restic/`, `tini/`, etc.)
+- 📁 One subfolder per image inside `images/` (e.g., `images/restic/`, `images/tini/`)
 - 🖙 Automatic builds with GitHub Actions
 - 🔖 Semantic version tags based on installed software and base image versions
 - 🐳 Published to [GHCR](https://ghcr.io) under `ghcr.io/aschbacd/<image-name>`
@@ -15,10 +15,11 @@ changes are merged into the `main` branch.
 
 ```
 .
-├── restic/
-│   └── Dockerfile
-├── tini/
-│   └── Dockerfile
+├── images/
+│   ├── restic/
+│   │   └── Dockerfile
+│   ├── tini/
+│   │   └── Dockerfile
 ├── .github/
 │   └── workflows/
 │       └── build.yml
@@ -47,7 +48,7 @@ docker pull ghcr.io/aschbacd/tini:0.19.0-alpine-3.21.3
 
 ## 💪 Adding a New Image
 
-1. Create a new folder (e.g. `htop/`)
+1. Create a new folder under `images/` (e.g. `images/htop/`)
 2. Add a `Dockerfile` using this pattern:
 
 ```Dockerfile
@@ -63,7 +64,7 @@ RUN apk add --no-cache htop=$VERSION
 ## 🥪 CI/CD
 
 The GitHub Actions workflow:
-- Detects changes in folders
+- Detects changes in folders under `images/`
 - Builds Docker images
 - Extracts `VERSION` and base image tag
 - Tags and pushes images to GHCR
