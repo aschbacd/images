@@ -1,17 +1,17 @@
-# 🐳 Simple Docker Images Collection
+# Simple Docker Images Collection
 
 This repository contains a collection of minimal, custom Docker images. Each image is built and
 published automatically to the GitHub Container Registry (GHCR) when its folder is updated and
 changes are merged into the `main` branch.
 
-## 📆 Features
+## Features
 
 - 📁 One subfolder per image inside `images/` (e.g., `images/restic/`, `images/tini/`)
-- 🖙 Automatic builds with GitHub Actions
+- ⚙️ Automatic builds with GitHub Actions
 - 🔖 Semantic version tags based on installed software and base image versions
-- 🐳 Published to [GHCR](https://ghcr.io) under `ghcr.io/aschbacd/<image-name>`
+- 🐋 Published to [GHCR](https://ghcr.io) under `ghcr.io/aschbacd/<image-name>`
 
-## 🧱 Repository Structure
+## Repository Structure
 
 ```
 .
@@ -31,7 +31,7 @@ Each folder contains:
 - An ARG/ENV variable named `VERSION` defining the installed software version
 - (Optional) A `# VERSION=...` comment to help the workflow extract the tag
 
-## 🚀 Image Tags
+## Image Tags
 
 Images are published with two tags:
 
@@ -39,14 +39,26 @@ Images are published with two tags:
    Example: `0.19.0-alpine-3.21.3`
 2. **`latest` tag**: Always updated on changes to the image
 
-## 📅 Pulling Images
+### Custom Version Increment
+
+You can specify a custom version increment in the Dockerfile by adding a `VERSION_INCREMENT` variable:
+
+```dockerfile
+# VERSION=0.18.0
+# VERSION_INCREMENT=1
+```
+
+- If no `VERSION_INCREMENT` is specified or it is set to `0`, the tag will be based on the base image version (e.g., `restic:0.18.0`).
+- If a `VERSION_INCREMENT` is provided (e.g., `1`), the tag will be `restic:0.18.0-1`.
+
+## Pulling Images
 
 ```bash
 docker pull ghcr.io/aschbacd/restic:0.18.0
 docker pull ghcr.io/aschbacd/tini:0.19.0-alpine-3.21.3
 ```
 
-## 💪 Adding a New Image
+## Adding a New Image
 
 1. Create a new folder under `images/` (e.g. `images/htop/`)
 2. Add a `Dockerfile` using this pattern:
@@ -61,7 +73,7 @@ RUN apk add --no-cache htop=$VERSION
 
 3. Open a PR. Once merged to `main`, the image will be built and published automatically.
 
-## 🥪 CI/CD
+## CI/CD
 
 The GitHub Actions workflow:
 - Detects changes in folders under `images/`
@@ -69,10 +81,10 @@ The GitHub Actions workflow:
 - Extracts `VERSION` and base image tag
 - Tags and pushes images to GHCR
 
-## 🤝 Contributing
+## Contributing
 
 Feel free to open issues or submit pull requests for new images or improvements.
 
-## 📄 License
+## License
 
 [MIT](./LICENSE)
