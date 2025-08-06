@@ -1,12 +1,12 @@
-name: Build and Push Docker Images
+name: Build and Push Docker Image
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - '*_*'  # Matches tags like my-image_v0.0.1
 
 jobs:
-  detect-changes-and-build:
+  docker:
     runs-on: ubuntu-latest
 
     permissions:
@@ -29,68 +29,23 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Find changed Dockerfiles in images/
-        id: changed
+      - name: Extract image name and version from tag
+        id: extract
         run: |
-          set -e
+          TAG="${GITHUB_REF#refs/tags/}"
+          IMAGE_NAME="${TAG%%_*}"
+          VERSION="${TAG#*_}"
+          echo "image_name=${IMAGE_NAME}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
-          if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
-            BEFORE_SHA=$(git rev-parse HEAD~1)
-          else
-            echo "No previous commit found. Skipping diff check."
-            echo "dirs=" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          AFTER_SHA=$(git rev-parse HEAD)
-
-          CHANGED_DOCKERFILES=$(git diff --name-only "$BEFORE_SHA" "$AFTER_SHA" -- "images/**/Dockerfile" || true)
-
-          if [ -z "$CHANGED_DOCKERFILES" ]; then
-            echo "No Dockerfiles changed in images/."
-            echo "dirs=" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          UNIQUE_DIRS=$(echo "$CHANGED_DOCKERFILES" | xargs -n1 dirname | sort -u | paste -sd "," -)
-          echo "Detected changed image folders: $UNIQUE_DIRS"
-          echo "dirs=$UNIQUE_DIRS" >> $GITHUB_OUTPUT
-
-      - name: Build and push images
-        if: steps.changed.outputs.dirs != ''
+      - name: Build and push Docker image
         run: |
-          set -e
+          IMAGE_NAME=${{ steps.extract.outputs.image_name }}
+          VERSION=${{ steps.extract.outputs.version }}
+          IMAGE_PATH="images/${IMAGE_NAME}"
+          IMAGE_TAG="ghcr.io/${{ github.repository_owner }}/${IMAGE_NAME}:${VERSION}"
+          IMAGE_TAG_LATEST="ghcr.io/${{ github.repository_owner }}/${IMAGE_NAME}:latest"
 
-          IFS=\",\" read -ra DIRS <<< "${{ steps.changed.outputs.dirs }}"
-
-          for DIR in "${DIRS[@]}"; do
-            NAME=$(basename "$DIR")
-
-            echo "\n🛠 Building image: $NAME from $DIR"
-
-            BASE_IMAGE=$(grep -i '^FROM' "$DIR/Dockerfile" | awk '{print $2}')
-            BASE_VERSION=$(echo "$BASE_IMAGE" | cut -d":" -f2)
-
-            VERSION_LINE=$(grep -i '^# VERSION=' "$DIR/Dockerfile" || true)
-            VERSION=${VERSION_LINE/#\# VERSION=/}
-
-            # Custom version increment logic
-            INCREMENT=$(grep -i '^# VERSION_INCREMENT=' "$DIR/Dockerfile" || true)
-            INCREMENT=${INCREMENT/#\# VERSION_INCREMENT=/}
-
-            if [[ -z "$VERSION" ]]; then
-              VERSION="$BASE_VERSION"
-              echo "No custom VERSION specified. Using base image version: $VERSION"
-            elif [[ -z "$INCREMENT" || "$INCREMENT" == "0" ]]; then
-              echo "No custom increment specified. Using base version tag: $VERSION"
-            else
-              VERSION="$VERSION-$INCREMENT"
-              echo "Custom version with increment: $VERSION"
-            fi
-
-            IMAGE_NAME="ghcr.io/${{ github.repository_owner }}/$NAME"
-
-            docker build -t "$IMAGE_NAME:$VERSION" -t "$IMAGE_NAME:latest" "$DIR"
-            docker push "$IMAGE_NAME:$VERSION"
-            docker push "$IMAGE_NAME:latest"
-          done
+          docker build -t "$IMAGE_TAG" -t "$IMAGE_TAG_LATEST" "$IMAGE_PATH"
+          docker push "$IMAGE_TAG"
+          docker push "$IMAGE_TAG_LATEST"
